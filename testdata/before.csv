@@ -1,0 +1,11 @@
+ID,Region,Name,Price,Notes,OldCol
+1,East,Widget,5.00,stable,
+2,West,Gadget,10.00,review,
+3,East,Gizmo,15.00,draft,
+4,West,Doohickey,20.00,old note,legacy
+5,East,Thingamajig,25.00,archived,
+7,East,Sprocket,30.00,ok,
+7,East,Sprocket,35.00,ok,
+8,West,Flange,40.00,check,
+9,East,Bolt,,pending,
+10,West,Washer,50.00,done,

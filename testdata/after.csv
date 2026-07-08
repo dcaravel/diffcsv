@@ -1,0 +1,11 @@
+ID,Region,Name,Price,Notes,NewCol
+1,East,Widget,5.00,stable,
+2,West,Gadget,12.50,review,
+3,East,Gizmo,15.00,updated,
+4,West,Doohickey,22.00,new note,modern
+6,West,Contraption,18.00,new,
+7,East,Sprocket,30.00,ok,
+8,West,Flange,40.00,check,
+8,West,Flange,45.00,check,
+9,East,Bolt,7.50,pending,
+10,West,Washer,,done,
