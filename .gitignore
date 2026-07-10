@@ -18,6 +18,7 @@ go.work.sum
 !testdata/*.csv
 *.db
 diffcsv
+dist/
 
 ### macOS ###
 .DS_Store
