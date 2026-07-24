@@ -68,17 +68,19 @@ func parseCSV(path string, keyColumns []string) (header []string, keyIndices []i
 	colIdx := make(map[string]int, len(header))
 	colPositions := make(map[string][]int, len(header))
 	for i, col := range header {
-		colIdx[col] = i
-		colPositions[col] = append(colPositions[col], i+1)
+		lower := strings.ToLower(col)
+		colIdx[lower] = i
+		colPositions[lower] = append(colPositions[lower], i+1)
 	}
 
 	var dupParts []string
 	seen := make(map[string]bool)
 	for _, col := range header {
-		if len(colPositions[col]) > 1 && !seen[col] {
-			seen[col] = true
-			posStrs := make([]string, len(colPositions[col]))
-			for i, p := range colPositions[col] {
+		lower := strings.ToLower(col)
+		if len(colPositions[lower]) > 1 && !seen[lower] {
+			seen[lower] = true
+			posStrs := make([]string, len(colPositions[lower]))
+			for i, p := range colPositions[lower] {
 				posStrs[i] = fmt.Sprintf("%d", p)
 			}
 			dupParts = append(dupParts, fmt.Sprintf("%q (columns %s)", col, strings.Join(posStrs, ", ")))
@@ -91,7 +93,7 @@ func parseCSV(path string, keyColumns []string) (header []string, keyIndices []i
 	keyIndices = make([]int, len(keyColumns))
 	var missing []string
 	for i, kc := range keyColumns {
-		idx, ok := colIdx[kc]
+		idx, ok := colIdx[strings.ToLower(kc)]
 		if !ok {
 			missing = append(missing, kc)
 			continue
@@ -124,12 +126,12 @@ func buildUnionHeader(headerA, headerB []string) []string {
 	union := make([]string, len(headerB))
 	copy(union, headerB)
 	for _, col := range headerB {
-		seen[col] = true
+		seen[strings.ToLower(col)] = true
 	}
 	for _, col := range headerA {
-		if !seen[col] {
+		if !seen[strings.ToLower(col)] {
 			union = append(union, col)
-			seen[col] = true
+			seen[strings.ToLower(col)] = true
 		}
 	}
 	return union
@@ -139,20 +141,21 @@ func compareOneRow(rA, rB compareRow, unionHeader []string, colIdxA, colIdxB map
 	var changes []fieldChange
 	var ignoredChanges []fieldChange
 	for _, col := range unionHeader {
-		if keySet[col] {
+		lower := strings.ToLower(col)
+		if keySet[lower] {
 			continue
 		}
 		valA := ""
-		if idx, ok := colIdxA[col]; ok && idx < len(rA.values) {
+		if idx, ok := colIdxA[lower]; ok && idx < len(rA.values) {
 			valA = rA.values[idx]
 		}
 		valB := ""
-		if idx, ok := colIdxB[col]; ok && idx < len(rB.values) {
+		if idx, ok := colIdxB[lower]; ok && idx < len(rB.values) {
 			valB = rB.values[idx]
 		}
 		if valA != valB {
 			fc := fieldChange{column: col, oldVal: valA, newVal: valB}
-			if ignoreColumns[col] {
+			if ignoreColumns[lower] {
 				ignoredChanges = append(ignoredChanges, fc)
 			} else {
 				changes = append(changes, fc)
@@ -185,17 +188,17 @@ func diffRows(headerA, headerB []string, keyIdxA, keyIdxB []int, rowsA, rowsB []
 
 	colIdxA := make(map[string]int, len(headerA))
 	for i, col := range headerA {
-		colIdxA[col] = i
+		colIdxA[strings.ToLower(col)] = i
 	}
 	colIdxB := make(map[string]int, len(headerB))
 	for i, col := range headerB {
-		colIdxB[col] = i
+		colIdxB[strings.ToLower(col)] = i
 	}
 
 	keySet := make(map[string]bool)
 	for _, ki := range keyIdxA {
 		if ki < len(headerA) {
-			keySet[headerA[ki]] = true
+			keySet[strings.ToLower(headerA[ki])] = true
 		}
 	}
 
@@ -290,11 +293,11 @@ func formatChanges(changes []fieldChange) string {
 func rowToUnion(row []string, sourceHeader []string, unionHeader []string) []string {
 	colIdx := make(map[string]int, len(sourceHeader))
 	for i, col := range sourceHeader {
-		colIdx[col] = i
+		colIdx[strings.ToLower(col)] = i
 	}
 	out := make([]string, len(unionHeader))
 	for i, col := range unionHeader {
-		if idx, ok := colIdx[col]; ok && idx < len(row) {
+		if idx, ok := colIdx[strings.ToLower(col)]; ok && idx < len(row) {
 			out[i] = row[idx]
 		}
 	}
@@ -447,7 +450,7 @@ func runCompare(csvA, csvB, keyColumnsStr, ignoreColumnsStr, outputDir string, s
 	if ignoreColumnsStr != "" {
 		ignoreColumns = make(map[string]bool)
 		for _, col := range strings.Split(ignoreColumnsStr, ",") {
-			ignoreColumns[strings.TrimSpace(col)] = true
+			ignoreColumns[strings.ToLower(strings.TrimSpace(col))] = true
 		}
 	}
 

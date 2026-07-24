@@ -1,4 +1,4 @@
-ID,Region,Name,Price,Notes,NewCol
+ID,REGION,NAME,PRICE,NOTES,NEWCoL
 1,East,Widget,5.00,stable,
 2,West,Gadget,12.50,review,
 3,East,Gizmo,15.00,updated,

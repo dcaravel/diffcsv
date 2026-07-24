@@ -231,7 +231,7 @@ func TestDiffRows_IgnoreColumns(t *testing.T) {
 	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
 	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
 
-	ignore := map[string]bool{"City": true}
+	ignore := map[string]bool{"city": true}
 	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, ignore)
 
 	// Age changed (not ignored) → changed
@@ -259,7 +259,7 @@ func TestDiffRows_IgnoreColumnsOnly(t *testing.T) {
 	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
 	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
 
-	ignore := map[string]bool{"City": true}
+	ignore := map[string]bool{"city": true}
 	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, ignore)
 
 	// Only City changed (ignored) → goes to ignored, not changed
@@ -284,7 +284,7 @@ func TestDiffRows_IgnoreColumnsNoChange(t *testing.T) {
 	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
 	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
 
-	ignore := map[string]bool{"City": true}
+	ignore := map[string]bool{"city": true}
 	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, ignore)
 
 	// Nothing changed at all → unchanged
@@ -366,7 +366,7 @@ func TestWriteSplitOutput_ShowIgnored(t *testing.T) {
 	pathB := writeTestCSV(t, dir, "b.csv", csvB)
 
 	keyCols := []string{"Name"}
-	ignore := map[string]bool{"City": true}
+	ignore := map[string]bool{"city": true}
 	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
 	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
 	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, ignore)
@@ -411,7 +411,7 @@ func TestWriteSplitOutput_IgnoredToUnchanged(t *testing.T) {
 	pathB := writeTestCSV(t, dir, "b.csv", csvB)
 
 	keyCols := []string{"Name"}
-	ignore := map[string]bool{"City": true}
+	ignore := map[string]bool{"city": true}
 	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
 	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
 	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, ignore)
@@ -731,6 +731,105 @@ func TestRunCompare_NoDuplicatesFlag(t *testing.T) {
 	// duplicates.csv should NOT exist
 	if _, err := os.Stat(filepath.Join(outDir, "duplicates.csv")); err == nil {
 		t.Error("duplicates.csv should not exist without --show-duplicates")
+	}
+}
+
+func TestParseCSV_CaseInsensitiveKeyColumn(t *testing.T) {
+	dir := t.TempDir()
+	csv := "name,Age,City\nAlice,30,NYC\n"
+	p := writeTestCSV(t, dir, "test.csv", csv)
+
+	header, keyIdx, rows, err := parseCSV(p, []string{"Name"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(header) != 3 {
+		t.Errorf("expected 3 header columns, got %d", len(header))
+	}
+	if len(keyIdx) != 1 || keyIdx[0] != 0 {
+		t.Errorf("expected key index [0], got %v", keyIdx)
+	}
+	if len(rows) != 1 || rows[0].key != "Alice" {
+		t.Errorf("expected key 'Alice', got %q", rows[0].key)
+	}
+}
+
+func TestParseCSV_CaseInsensitiveDuplicateColumns(t *testing.T) {
+	dir := t.TempDir()
+	csv := "Name,Age,name\nAlice,30,Bob\n"
+	p := writeTestCSV(t, dir, "test.csv", csv)
+
+	_, _, _, err := parseCSV(p, []string{"Age"})
+	if err == nil {
+		t.Fatal("expected error for case-insensitive duplicate columns")
+	}
+	if !strings.Contains(err.Error(), "duplicate column") {
+		t.Errorf("expected 'duplicate column' in error, got: %s", err)
+	}
+}
+
+func TestDiffRows_CaseInsensitiveColumnMatching(t *testing.T) {
+	dir := t.TempDir()
+	csvA := "Name,Age,City\nAlice,30,NYC\n"
+	csvB := "name,age,city\nAlice,31,NYC\n"
+	pathA := writeTestCSV(t, dir, "a.csv", csvA)
+	pathB := writeTestCSV(t, dir, "b.csv", csvB)
+
+	keyCols := []string{"name"}
+	headerA, keyIdxA, rowsA, _ := parseCSV(pathA, keyCols)
+	headerB, keyIdxB, rowsB, _ := parseCSV(pathB, keyCols)
+
+	result := diffRows(headerA, headerB, keyIdxA, keyIdxB, rowsA, rowsB, nil)
+
+	if len(result.changed) != 1 {
+		t.Fatalf("expected 1 changed, got %d", len(result.changed))
+	}
+	if len(result.changed[0].changes) != 1 {
+		t.Fatalf("expected 1 change field, got %d", len(result.changed[0].changes))
+	}
+	if result.changed[0].changes[0].oldVal != "30" || result.changed[0].changes[0].newVal != "31" {
+		t.Errorf("expected Age 30→31, got %s→%s", result.changed[0].changes[0].oldVal, result.changed[0].changes[0].newVal)
+	}
+}
+
+func TestRunCompare_CaseInsensitiveIgnoreColumns(t *testing.T) {
+	dir := t.TempDir()
+	csvA := "Name,Age,City\nAlice,30,NYC\n"
+	csvB := "Name,Age,City\nAlice,30,LA\n"
+	pathA := writeTestCSV(t, dir, "a.csv", csvA)
+	pathB := writeTestCSV(t, dir, "b.csv", csvB)
+	outDir := filepath.Join(dir, "out")
+
+	err := runCompare(pathA, pathB, "Name", "city", outDir, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(outDir, "ignored.csv"))
+	if err != nil {
+		t.Fatal("ignored.csv should exist when ignoring with different case")
+	}
+	r := csv.NewReader(strings.NewReader(string(data)))
+	rows, _ := r.ReadAll()
+	if len(rows) != 2 {
+		t.Errorf("ignored.csv: expected 2 rows, got %d", len(rows))
+	}
+}
+
+func TestBuildUnionHeader_CaseInsensitive(t *testing.T) {
+	headerA := []string{"Name", "Age", "City"}
+	headerB := []string{"name", "age", "State"}
+
+	union := buildUnionHeader(headerA, headerB)
+
+	if len(union) != 4 {
+		t.Fatalf("expected 4 union columns, got %d: %v", len(union), union)
+	}
+	expected := []string{"name", "age", "State", "City"}
+	for i, col := range expected {
+		if union[i] != col {
+			t.Errorf("union[%d]: expected %q, got %q", i, col, union[i])
+		}
 	}
 }
 
