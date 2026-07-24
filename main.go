@@ -27,7 +27,6 @@ func main() {
 	rootCmd.Flags().BoolVar(&showIgnored, "show-ignored", false, "write ignored.csv for rows changed only in ignored columns")
 	rootCmd.Flags().BoolVar(&showDuplicates, "show-duplicates", false, "write duplicates.csv for rows with duplicate keys")
 	rootCmd.MarkFlagRequired("key-cols")
-	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
