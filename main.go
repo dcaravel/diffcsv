@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -6,6 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 )
+
+var version = "dev"
 
 func main() {
 	var keyColumns, ignoreColumns, outputDir string
@@ -21,6 +22,7 @@ func main() {
 		SilenceUsage: true,
 	}
 
+	rootCmd.Version = version
 	rootCmd.Flags().StringVarP(&keyColumns, "key-cols", "", "", "comma-separated list of columns that form the row identity (required)")
 	rootCmd.Flags().StringVar(&ignoreColumns, "ignore-cols", "", "comma-separated list of columns to exclude from change detection")
 	rootCmd.Flags().StringVar(&outputDir, "output-dir", ".", "directory for output files")

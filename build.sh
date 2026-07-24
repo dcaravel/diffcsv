@@ -27,7 +27,7 @@ for platform in "${PLATFORMS[@]}"; do
 
     echo "Building ${GOOS}/${GOARCH}..."
     GOOS="${GOOS}" GOARCH="${GOARCH}" go build \
-        -ldflags="-s -w" \
+        -ldflags="-s -w -X main.version=${VERSION:-dev}" \
         -o "${dir}/${output_name}" \
         .
 
