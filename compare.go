@@ -66,8 +66,26 @@ func parseCSV(path string, keyColumns []string) (header []string, keyIndices []i
 	header = allRows[0]
 
 	colIdx := make(map[string]int, len(header))
+	colPositions := make(map[string][]int, len(header))
 	for i, col := range header {
 		colIdx[col] = i
+		colPositions[col] = append(colPositions[col], i+1)
+	}
+
+	var dupParts []string
+	seen := make(map[string]bool)
+	for _, col := range header {
+		if len(colPositions[col]) > 1 && !seen[col] {
+			seen[col] = true
+			posStrs := make([]string, len(colPositions[col]))
+			for i, p := range colPositions[col] {
+				posStrs[i] = fmt.Sprintf("%d", p)
+			}
+			dupParts = append(dupParts, fmt.Sprintf("%q (columns %s)", col, strings.Join(posStrs, ", ")))
+		}
+	}
+	if len(dupParts) > 0 {
+		return nil, nil, nil, fmt.Errorf("%s: duplicate column(s): %s", path, strings.Join(dupParts, ", "))
 	}
 
 	keyIndices = make([]int, len(keyColumns))

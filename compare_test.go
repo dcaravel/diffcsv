@@ -733,3 +733,40 @@ func TestRunCompare_NoDuplicatesFlag(t *testing.T) {
 		t.Error("duplicates.csv should not exist without --show-duplicates")
 	}
 }
+
+func TestParseCSV_DuplicateColumns(t *testing.T) {
+	dir := t.TempDir()
+	csv := "Name,Age,Name\nAlice,30,Bob\n"
+	p := writeTestCSV(t, dir, "test.csv", csv)
+
+	_, _, _, err := parseCSV(p, []string{"Age"})
+	if err == nil {
+		t.Fatal("expected error for duplicate column names")
+	}
+	if !strings.Contains(err.Error(), "duplicate column") {
+		t.Errorf("expected 'duplicate column' in error, got: %s", err)
+	}
+	if !strings.Contains(err.Error(), `"Name"`) {
+		t.Errorf("expected '\"Name\"' in error, got: %s", err)
+	}
+	if !strings.Contains(err.Error(), "1") || !strings.Contains(err.Error(), "3") {
+		t.Errorf("expected column positions in error, got: %s", err)
+	}
+}
+
+func TestParseCSV_MultipleDuplicateColumns(t *testing.T) {
+	dir := t.TempDir()
+	csv := "Name,Age,Name,Age\nAlice,30,Bob,25\n"
+	p := writeTestCSV(t, dir, "test.csv", csv)
+
+	_, _, _, err := parseCSV(p, []string{"Name"})
+	if err == nil {
+		t.Fatal("expected error for duplicate column names")
+	}
+	if !strings.Contains(err.Error(), `"Name"`) {
+		t.Errorf("expected '\"Name\"' in error, got: %s", err)
+	}
+	if !strings.Contains(err.Error(), `"Age"`) {
+		t.Errorf("expected '\"Age\"' in error, got: %s", err)
+	}
+}
